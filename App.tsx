@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -102,7 +101,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className={`flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+        <div className="flex h-screen text-gray-900 dark:text-gray-100">
             <Sidebar
                 courseStructure={COURSE_STRUCTURE}
                 completedLessons={completedLessons}
