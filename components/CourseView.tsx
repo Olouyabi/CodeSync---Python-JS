@@ -49,6 +49,14 @@ export const CourseView: React.FC<CourseViewProps> = ({
         );
     }
 
+    const slugify = (text: string) =>
+        text
+            .toLowerCase()
+            .replace(/\s+/g, '_') // Replace spaces with _
+            .replace(/[^\w-]+/g, ''); // Remove all non-word chars
+
+    const fileName = slugify(lesson.title);
+
     return (
         <div className="p-4 md:p-6 lg:p-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{lesson.title}</h1>
@@ -61,14 +69,14 @@ export const CourseView: React.FC<CourseViewProps> = ({
                         <PythonIcon className="w-6 h-6 mr-2" />
                         Exemple Python
                     </h2>
-                    <CodeBlock code={lessonContent.pythonCode} language="python" />
+                    <CodeBlock code={lessonContent.pythonCode} language="python" fileName={fileName} />
                 </div>
                 <div>
                     <h2 className="text-xl font-semibold flex items-center mb-2 dark:text-white">
                         <JavaScriptIcon className="w-6 h-6 mr-2" />
                         Exemple JavaScript
                     </h2>
-                    <CodeBlock code={lessonContent.jsCode} language="javascript" />
+                    <CodeBlock code={lessonContent.jsCode} language="javascript" fileName={fileName} />
                 </div>
             </div>
             

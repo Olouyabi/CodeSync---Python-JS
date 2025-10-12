@@ -18,6 +18,9 @@ const App: React.FC = () => {
     const [lessonContent, setLessonContent] = useState<LessonContent | null>(null);
     const [isLessonLoading, setLessonLoading] = useState(false);
     
+    // Cache for preloaded lesson content
+    const [lessonCache, setLessonCache] = useState<Map<string, LessonContent>>(new Map());
+
     const [projectIdeas, setProjectIdeas] = useState<ProjectIdea[]>([]);
     const [isProjectsLoading, setProjectsLoading] = useState(false);
     const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -31,25 +34,77 @@ const App: React.FC = () => {
     const totalLessons = useMemo(() => COURSE_STRUCTURE.reduce((acc, chapter) => acc + chapter.lessons.length, 0), []);
     const progress = useMemo(() => totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0, [completedLessons, totalLessons]);
 
+    const findNextLesson = (lessonId: string): Lesson | null => {
+        for (let i = 0; i < COURSE_STRUCTURE.length; i++) {
+            const chapter = COURSE_STRUCTURE[i];
+            const lessonIndex = chapter.lessons.findIndex(l => l.id === lessonId);
+
+            if (lessonIndex !== -1) {
+                // Found the lesson
+                if (lessonIndex < chapter.lessons.length - 1) {
+                    // Next lesson is in the same chapter
+                    return chapter.lessons[lessonIndex + 1];
+                } else if (i < COURSE_STRUCTURE.length - 1) {
+                    // Next lesson is the first in the next chapter
+                    const nextChapter = COURSE_STRUCTURE[i + 1];
+                    if (nextChapter && nextChapter.lessons.length > 0) {
+                        return nextChapter.lessons[0];
+                    }
+                }
+            }
+        }
+        return null; // This was the last lesson
+    };
+
+    const preloadLesson = useCallback(async (lesson: Lesson) => {
+        if (!lesson || lessonCache.has(lesson.id)) {
+            return;
+        }
+        try {
+            const content = await generateLessonContent(lesson.title);
+            setLessonCache(prevCache => new Map(prevCache).set(lesson.id, content));
+        } catch (error) {
+            console.warn(`Failed to preload lesson "${lesson.title}":`, error);
+        }
+    }, [lessonCache]);
+
     const handleSelectLesson = useCallback((lesson: Lesson) => {
         if (lesson.id === currentLesson?.id) return;
         
         setCurrentLesson(lesson);
-        setLessonContent(null);
-        setLessonLoading(true);
 
-        generateLessonContent(lesson.title)
-            .then(content => {
-                setLessonContent(content);
-            })
-            .catch(error => {
-                console.error("Failed to load lesson content", error);
-                // Optionally set an error state here
-            })
-            .finally(() => {
-                setLessonLoading(false);
-            });
-    }, [currentLesson?.id]);
+        // Check cache first
+        if (lessonCache.has(lesson.id)) {
+            setLessonContent(lessonCache.get(lesson.id)!);
+            setLessonLoading(false);
+            // Preload the next one immediately
+            const nextLesson = findNextLesson(lesson.id);
+            if (nextLesson) {
+                preloadLesson(nextLesson);
+            }
+        } else {
+            setLessonContent(null);
+            setLessonLoading(true);
+
+            generateLessonContent(lesson.title)
+                .then(content => {
+                    setLessonContent(content);
+                    // Add the new content to the cache
+                    setLessonCache(prevCache => new Map(prevCache).set(lesson.id, content));
+                    // Preload the next lesson
+                    const nextLesson = findNextLesson(lesson.id);
+                    if (nextLesson) {
+                        preloadLesson(nextLesson);
+                    }
+                })
+                .catch(error => {
+                    console.error("Failed to load lesson content", error);
+                })
+                .finally(() => {
+                    setLessonLoading(false);
+                });
+        }
+    }, [currentLesson?.id, lessonCache, preloadLesson]);
     
     const handleSelectView = useCallback((view: View) => {
         setCurrentView(view);
@@ -121,22 +176,27 @@ const App: React.FC = () => {
                     lessonTitle={getLessonTitle()}
                 />
                 <main className="flex-1 overflow-y-auto">
-                    {currentView === 'lesson' ? (
-                        <CourseView
-                            lesson={currentLesson}
-                            lessonContent={lessonContent}
-                            isLoading={isLessonLoading}
-                            isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
-                            onCompleteLesson={handleCompleteLesson}
-                            onTakeQuiz={handleTakeQuiz}
-                        />
-                    ) : (
-                       <ProjectIdeasView
-                            ideas={projectIdeas}
-                            isLoading={isProjectsLoading}
-                            error={projectsError}
-                        />
-                    )}
+                    <div 
+                      key={currentView === 'lesson' ? currentLesson?.id || 'welcome' : 'projects'} 
+                      className="content-fade-in"
+                    >
+                        {currentView === 'lesson' ? (
+                            <CourseView
+                                lesson={currentLesson}
+                                lessonContent={lessonContent}
+                                isLoading={isLessonLoading}
+                                isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
+                                onCompleteLesson={handleCompleteLesson}
+                                onTakeQuiz={handleTakeQuiz}
+                            />
+                        ) : (
+                           <ProjectIdeasView
+                                ideas={projectIdeas}
+                                isLoading={isProjectsLoading}
+                                error={projectsError}
+                            />
+                        )}
+                    </div>
                 </main>
             </div>
             {isQuizModalOpen && currentLesson && (

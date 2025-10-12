@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,7 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeSync: Python & JS</title>
+    <!-- PrismJS Theme: Tomorrow Night -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-vswe+cgvic/XBoF1OcM/TeJ2UADevETCubEecCT/Lt3g/PyIsYLfHKO6bWcFuaKxDEyC5OagjLGJQE41IzT92A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- PrismJS Line Numbers Plugin CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" integrity="sha512-cbQXwDFK7lj2Fqfkuxbo5iD1dSbLlJGXGpfTDqbggqjLIeycAl4LBvrEzLNNrbDTFHsgzi5vLiLxRrxXAdeKGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(1rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .content-fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+      }
+    </style>
     <script>
       // Prevents FOUC for dark mode
       if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -29,5 +47,12 @@
   <body class="bg-gray-100 dark:bg-gray-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <!-- PrismJS Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha512-9khQRAUBYEJDCDVP2yw3LRUQvjJ0Pjx0EShmaQjcHa6AXiOv6qHQu9lCAIR8O+/D8FtaCoJ2c0Tf9Xo7GRYH4Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- PrismJS Language Components -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" integrity="sha512-jwrwRWZAbmmQvtAFN3le3fuO9NWwIIJ4eNTRiH7T+zJ1zG5uIe2L3Q0WHo2h32K9JSoi1MMs7JPLV9IKHkvvvw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" integrity="sha512-AKaNMGmIHgovEntPD5uMGFtHBBs1AfcMTqd3ng9G+uKR0pSad0M2d4S7q+w8T+2XoB6x5Ld5Jit1V/IFoJm2SA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- PrismJS Plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js" integrity="sha512-htNzI3eCnaQds+Kj6oRSt2Ia/r3p9gJ+x/5I0V4Uj1rA5y8o2qv68PjMlvv4PzMtytsW2kQG3gU5l7nS3N3Kw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </body>
 </html>
