@@ -1,105 +1,87 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Sidebar } from './components/Sidebar';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { CourseView } from './components/CourseView';
 import { ProjectIdeasView } from './components/ProjectIdeasView';
 import { useDarkMode } from './hooks/useDarkMode';
+import type { Lesson, View } from './types';
 import { COURSE_STRUCTURE } from './constants';
-import type { Lesson } from './types';
 
 const App: React.FC = () => {
   const [theme, toggleTheme] = useDarkMode();
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
-
-  const allLessons = useMemo(() => COURSE_STRUCTURE.flatMap(chapter => chapter.lessons), []);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [view, setView] = useState<View>('course');
   
-  const [currentLessonId, setCurrentLessonId] = useState<string>(() => {
-    return localStorage.getItem('currentLessonId') || allLessons[0]?.id || '';
+  // Flatten lessons for easy lookup
+  const allLessons = useMemo(() => COURSE_STRUCTURE.flatMap(ch => ch.lessons.map(l => ({...l, chapterId: ch.id}))), []);
+  
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(() => {
+    if (typeof window !== 'undefined') {
+        const savedLessonId = localStorage.getItem('selectedLessonId');
+        return allLessons.find(l => l.id === savedLessonId) || allLessons[0] || null;
+    }
+    return allLessons[0] || null;
   });
 
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(() => {
-    const savedProgress = localStorage.getItem('completedLessons');
-    return savedProgress ? new Set(JSON.parse(savedProgress)) : new Set();
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('completedLessons');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+    }
+    return new Set();
   });
 
+  const handleSelectLesson = (lesson: Lesson) => {
+    setSelectedLesson(lesson);
+    const newCompleted = new Set(completedLessons);
+    newCompleted.add(lesson.id);
+    setCompletedLessons(newCompleted);
+  };
+  
+  // Persist state to localStorage
   useEffect(() => {
-    localStorage.setItem('currentLessonId', currentLessonId);
-  }, [currentLessonId]);
-
-  useEffect(() => {
+    if(selectedLesson) {
+        localStorage.setItem('selectedLessonId', selectedLesson.id);
+    }
     localStorage.setItem('completedLessons', JSON.stringify(Array.from(completedLessons)));
-  }, [completedLessons]);
-
-  const handleSelectLesson = useCallback((lessonId: string) => {
-    setCurrentLessonId(lessonId);
-  }, []);
-
-  const handleCompleteLesson = useCallback((lessonId: string) => {
-    setCompletedLessons(prev => new Set(prev).add(lessonId));
-  }, []);
-
-  const currentLessonIndex = useMemo(() => allLessons.findIndex(lesson => lesson.id === currentLessonId), [allLessons, currentLessonId]);
-  
-  const currentLesson = useMemo(() => allLessons[currentLessonIndex], [allLessons, currentLessonIndex]);
-
-  const handleNextLesson = useCallback(() => {
-    if (currentLessonIndex < allLessons.length - 1) {
-      setCurrentLessonId(allLessons[currentLessonIndex + 1].id);
-    }
-  }, [currentLessonIndex, allLessons]);
-  
-  const handlePrevLesson = useCallback(() => {
-    if (currentLessonIndex > 0) {
-      setCurrentLessonId(allLessons[currentLessonIndex - 1].id);
-    }
-  }, [currentLessonIndex, allLessons]);
+  }, [selectedLesson, completedLessons]);
 
   const progress = useMemo(() => {
-    const projectLessonId = allLessons.find(l => l.title === 'Project Ideas')?.id;
-    const lessonsForProgress = allLessons.filter(l => l.id !== projectLessonId);
-    if (lessonsForProgress.length === 0) return 0;
-    
-    const completedCount = Array.from(completedLessons).filter(id => id !== projectLessonId).length;
-    return Math.round((completedCount / lessonsForProgress.length) * 100);
+    if (allLessons.length === 0) return 0;
+    return Math.round((completedLessons.size / allLessons.length) * 100);
   }, [completedLessons, allLessons]);
-
-  const isProjectView = currentLesson?.title === 'Project Ideas';
+  
+  const getLessonTitle = () => {
+    if (view === 'projects') return 'Idées de Projets';
+    if (selectedLesson) return selectedLesson.title;
+    return 'Bienvenue';
+  }
 
   return (
-    <div className={`flex h-screen font-sans antialiased text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-900 transition-colors duration-300 ${theme}`}>
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 font-sans">
       <Sidebar
-        currentLessonId={currentLessonId}
-        completedLessons={completedLessons}
-        onSelectLesson={handleSelectLesson}
         isOpen={isSidebarOpen}
-        setIsOpen={setSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        selectedLesson={selectedLesson}
+        onSelectLesson={handleSelectLesson}
+        currentView={view}
+        onSetView={setView}
+        completedLessons={completedLessons}
       />
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           progress={progress}
           theme={theme}
           toggleTheme={toggleTheme}
           onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
-          lessonTitle={currentLesson?.title || 'CodeSync'}
+          lessonTitle={getLessonTitle()}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {isProjectView ? (
-            <ProjectIdeasView />
-          ) : (
-            currentLesson && (
-              <CourseView
-                key={currentLesson.id}
-                lesson={currentLesson}
-                onComplete={handleCompleteLesson}
-                onNext={handleNextLesson}
-                onPrev={handlePrevLesson}
-                isFirst={currentLessonIndex === 0}
-                isLast={currentLessonIndex === allLessons.length - 1}
-                isCompleted={completedLessons.has(currentLesson.id)}
-              />
-            )
-          )}
+        <main className="flex-1 overflow-y-auto">
+            {view === 'course' ? (
+                <CourseView selectedLesson={selectedLesson} />
+            ) : (
+                <ProjectIdeasView />
+            )}
         </main>
       </div>
     </div>

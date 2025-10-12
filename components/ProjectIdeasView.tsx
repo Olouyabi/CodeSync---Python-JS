@@ -1,86 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { fetchProjectIdeas } from '../services/geminiService';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ProjectIdea } from '../types';
-import { LightBulbIcon } from './icons/LightBulbIcon';
-import { CodeIcon } from './icons/CodeIcon';
+import { generateProjectIdeas } from '../services/geminiService';
+import { StarIcon } from './icons/StarIcon';
 
-const ProjectCardSkeleton: React.FC = () => (
-    <div className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-        <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-2/3 mb-3"></div>
-        <div className="space-y-2 mb-4">
-            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded"></div>
-            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-            <div className="h-6 w-16 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-            <div className="h-6 w-20 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-            <div className="h-6 w-24 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-        </div>
+const DifficultyBadge: React.FC<{ difficulty: ProjectIdea['difficulty'] }> = ({ difficulty }) => {
+    const colorClasses = {
+        'Facile': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        'Moyen': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        'Difficile': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    };
+    return (
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses[difficulty]}`}>
+            {difficulty}
+        </span>
+    );
+};
+
+const LoadingSkeleton = () => (
+    <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
+                <div className="space-y-3">
+                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
+                </div>
+            </div>
+        ))}
     </div>
 );
 
 export const ProjectIdeasView: React.FC = () => {
     const [ideas, setIdeas] = useState<ProjectIdea[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const loadIdeas = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const fetchedIdeas = await fetchProjectIdeas();
-                setIdeas(fetchedIdeas);
-            } catch (err) {
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError("Une erreur inconnue est survenue.");
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        loadIdeas();
+    const fetchIdeas = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const projectIdeas = await generateProjectIdeas();
+            setIdeas(projectIdeas);
+        } catch (err) {
+            setError('Impossible de charger les idées de projets. Veuillez réessayer.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    useEffect(() => {
+        fetchIdeas();
+    }, [fetchIdeas]);
+
     return (
-        <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-                <LightBulbIcon className="w-16 h-16 text-yellow-400 mx-auto mb-4"/>
-                <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">Félicitations !</h1>
-                <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">Vous avez terminé le cours. Voici quelques idées de projets innovants pour appliquer vos nouvelles compétences.</p>
+        <div className="p-6 md:p-10 max-w-7xl mx-auto">
+            <div className="text-center mb-10">
+                 <StarIcon className="w-12 h-12 mx-auto text-yellow-400 mb-2" />
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">Idées de Projets</h1>
+                <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">Mettez vos nouvelles compétences en pratique !</p>
             </div>
-
-            {isLoading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[...Array(3)].map((_, i) => <ProjectCardSkeleton key={i} />)}
-                </div>
-            )}
-
+            
+            {loading && <LoadingSkeleton />}
             {error && (
-                <div className="text-center text-red-500 bg-red-100 dark:bg-red-900/20 p-6 rounded-lg max-w-2xl mx-auto">
-                    <h2 className="text-xl font-bold mb-2">Impossible de récupérer les idées de projets.</h2>
+                <div className="text-center text-red-500">
                     <p>{error}</p>
+                    <button onClick={fetchIdeas} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Réessayer
+                    </button>
                 </div>
             )}
-
-            {!isLoading && !error && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {!loading && !error && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {ideas.map((idea, index) => (
-                        <div key={index} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col">
-                           <div className="flex items-start mb-3">
-                             <CodeIcon className="w-6 h-6 text-blue-500 mr-3 flex-shrink-0 mt-1"/>
-                             <h3 className="text-xl font-bold text-gray-900 dark:text-white">{idea.title}</h3>
-                           </div>
-                            <p className="text-gray-600 dark:text-gray-300 mb-4 flex-grow">{idea.description}</p>
-                            <div className="flex flex-wrap gap-2">
-                                {idea.technologies.map((tech, i) => (
-                                    <span key={i} className="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs font-medium px-2.5 py-1 rounded-full">
-                                        {tech}
-                                    </span>
-                                ))}
+                        <div key={index} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex flex-col">
+                            <div className="flex justify-between items-start mb-2">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{idea.title}</h2>
+                                <DifficultyBadge difficulty={idea.difficulty} />
                             </div>
+                            <p className="text-gray-600 dark:text-gray-400 flex-grow">{idea.description}</p>
                         </div>
                     ))}
                 </div>
