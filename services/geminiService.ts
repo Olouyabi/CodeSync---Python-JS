@@ -9,6 +9,7 @@ export const generateLessonContent = async (lessonTitle: string): Promise<{ expl
     Le public cible est débutant, apprenant à la fois Python et JavaScript.
     L'explication doit être claire, concise et facile à comprendre.
     Fournis des exemples de code simples et pertinents en Python et en JavaScript pour illustrer les concepts.
+    Important: Le code doit être bien formaté. Utilise des retours à la ligne pour séparer les instructions au lieu de points-virgules, afin de respecter les conventions de style de chaque langage.
     Formate la sortie en JSON avec les clés "explanation", "pythonCode" et "jsCode".`;
 
     try {

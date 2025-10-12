@@ -1,10 +1,11 @@
+
 export interface Lesson {
   id: string;
   title: string;
 }
 
 export interface Chapter {
-  id:string;
+  id: string;
   title: string;
   lessons: Lesson[];
 }
@@ -19,13 +20,13 @@ export interface QuizQuestion {
 export interface ProjectIdea {
   title: string;
   description: string;
-  difficulty: 'Facile' | 'Moyen' | 'Difficile';
+  difficulty: string;
 }
-
-export type View = 'course' | 'projects';
 
 export interface LessonContent {
   explanation: string;
   pythonCode: string;
   jsCode: string;
 }
+
+export type View = 'lesson' | 'projects';
